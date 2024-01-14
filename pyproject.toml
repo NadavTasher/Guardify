@@ -1,0 +1,35 @@
+[project]
+name = "guardify"
+version = "0.1.0"
+description = "A simple library for token generation and validation."
+readme = "README.md"
+license = {file = "LICENSE"}
+maintainers = [{name = "Nadav Tasher", email = "hey@nadav.app"}]
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
+keywords = ["token", "authentication"]
+dependencies = [
+    "runtypes>=0.2.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/NadavTasher/Guardify"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.distutils.bdist_wheel]
+universal = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.yapf]
+based_on_style = "google"
+column_limit = 400
+indent_width = 4
