@@ -7,7 +7,7 @@ import hashlib
 import binascii
 
 # Import runtypes
-from runtypes import List, Text, typechecker
+from runtypes import Tuple, List, Text, typechecker
 
 # Import token types
 from guardify.token import Token
@@ -52,7 +52,7 @@ class Authority(object):
             raise TypeError("Token is not text")
 
         # Make sure permissions are a list of texts
-        if not isinstance(permissions, List[Text]):
+        if not isinstance(permissions, (List[Text], Tuple)):
             raise TypeError("Permissions is not a list of texts")
 
         # Decode token to buffer
