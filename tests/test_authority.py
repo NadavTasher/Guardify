@@ -49,6 +49,10 @@ def test_validate(authority):
     # Make sure parsed token and generated token match
     assert parsed_token == token
 
+    # Make sure we can't validate random stuff
+    with pytest.raises(TypeError):
+        authority.validate(10)
+
 
 def test_permissions(authority):
     # Issue a token

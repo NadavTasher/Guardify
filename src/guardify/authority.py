@@ -7,7 +7,7 @@ import hashlib
 import binascii
 
 # Import runtypes
-from runtypes import Tuple, List, Text, typechecker
+from runtypes import Text, typechecker
 
 # Import token types
 from guardify.token import Token
@@ -48,12 +48,7 @@ class Authority(object):
 
     def validate(self, token, *permissions):
         # Make sure token is a text
-        if not isinstance(token, Text):
-            raise TypeError("Token is not text")
-
-        # Make sure permissions are a list of texts
-        if not isinstance(permissions, (List[Text], Tuple)):
-            raise TypeError("Permissions is not a list of texts")
+        token = Text(token)
 
         # Decode token to buffer
         buffer_and_signature = base64.b64decode(token)
