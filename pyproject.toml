@@ -12,7 +12,7 @@ classifiers = [
 ]
 keywords = ["token", "authentication"]
 dependencies = [
-    "runtypes>=0.2.1",
+    "runtypes>=0.3.0",
 ]
 
 [project.urls]
