@@ -11,20 +11,20 @@ from runtypes import Tuple, List, Text, typechecker
 
 # Import token types
 from guardify.token import Token
-from guardify.exceptions import PermissionError, SignatureError, ExpirationError
-
-# Length of the token signature
-HASH = hashlib.sha256
-LENGTH = HASH().digest_size
+from guardify.exceptions import ClockError, ExpirationError, PermissionError, SignatureError
 
 
 class Authority(object):
 
-    def __init__(self, secret):
-        # Set the secret
+    def __init__(self, secret, hash=hashlib.sha256):
+        # Set internal parameters
+        self._hash = hash
         self._secret = secret
 
-        # Set the validator
+        # Calculate the digest length
+        self._length = self._hash(self._secret).digest_size
+
+        # Set the type checker
         self.TokenType = typechecker(self.validate)
 
     def issue(self, name, contents={}, permissions=[], validity=60 * 60 * 24 * 365):
@@ -41,7 +41,7 @@ class Authority(object):
         buffer = json.dumps(object).encode()
 
         # Create token signature from token buffer
-        signature = hmac.new(self._secret, buffer, HASH).digest()
+        signature = hmac.new(self._secret, buffer, self._hash).digest()
 
         # Encode the token and return
         return base64.b64encode(buffer + signature).decode(), object
@@ -59,20 +59,22 @@ class Authority(object):
         buffer_and_signature = base64.b64decode(token)
 
         # Split buffer to token string and HMAC
-        buffer, signature = buffer_and_signature[:-LENGTH], buffer_and_signature[-LENGTH:]
+        buffer, signature = buffer_and_signature[:-self._length], buffer_and_signature[-self._length:]
 
         # Validate HMAC of buffer
-        if hmac.new(self._secret, buffer, HASH).digest() != signature:
+        if hmac.new(self._secret, buffer, self._hash).digest() != signature:
             raise SignatureError("Token signature is invalid")
 
         # Decode string to token object
         object = Token(*json.loads(buffer))
 
-        # Validate the expiration dates
+        # Make sure token isn't from the future
         if object.timestamp > time.time():
-            raise ExpirationError("Token timestamp is invalid")
+            raise ClockError("Token is invalid")
+
+        # Make sure token isn't expired
         if object.validity < time.time():
-            raise ExpirationError("Token validity is expired")
+            raise ExpirationError("Token is expired")
 
         # Validate permissions
         for permission in permissions:

@@ -1,10 +1,18 @@
-class ExpirationError(ValueError):
+class TokenError(ValueError):
     pass
 
 
-class PermissionError(ValueError):
+class ClockError(TokenError):
     pass
 
 
-class SignatureError(ValueError):
+class ExpirationError(TokenError):
+    pass
+
+
+class PermissionError(TokenError):
+    pass
+
+
+class SignatureError(TokenError):
     pass

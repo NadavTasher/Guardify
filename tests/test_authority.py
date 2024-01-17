@@ -72,7 +72,7 @@ def test_expiration(authority):
 
     # Patch time to return 0 - we are in the past
     with patch_time(lambda: 0):
-        with pytest.raises(ExpirationError):
+        with pytest.raises(ClockError):
             authority.validate(string)
 
     # Make sure the validation does not raise
@@ -99,3 +99,22 @@ def test_signature(authority):
     # Make sure validation raises a signature error
     with pytest.raises(SignatureError):
         authority.validate(string)
+
+
+def test_tokentype(authority):
+    # Issue a token
+    string, _ = authority.issue("Hello World", {"Hello": "World"}, ["Hello"])
+
+    # Make sure the type checker works
+    assert authority.TokenType(string).contents["Hello"] == "World"
+
+    # Make sure the type checker works with permissions
+    assert authority.TokenType["Hello"](string).contents["Hello"] == "World"
+
+    # Make sure the type checker works with wrong permissions
+    with pytest.raises(PermissionError):
+        authority.TokenType["World"](string).contents["Hello"] == "World"
+
+    # Check the type checker using isinstance
+    assert isinstance(string, authority.TokenType)
+    assert not isinstance("Hello World", authority.TokenType)
