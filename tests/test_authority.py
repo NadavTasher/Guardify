@@ -33,7 +33,7 @@ def test_issue(authority):
     string, token = authority.issue("Hello World", {"Hello": "World"}, ["Hello"])
 
     # Make sure string is a string
-    assert isinstance(string, str)
+    assert isinstance(string, (str, u"".__class__))
 
     # Make sure token is a token
     assert isinstance(token, Token)
