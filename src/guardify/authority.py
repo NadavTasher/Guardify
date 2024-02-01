@@ -48,7 +48,8 @@ class Authority(object):
 
     def validate(self, token, *permissions):
         # Make sure token is a text
-        token = Text(token)
+        if not isinstance(token, Text):
+            raise TypeError("Token must be text")
 
         # Decode token to buffer
         buffer_and_signature = base64.b64decode(token)
