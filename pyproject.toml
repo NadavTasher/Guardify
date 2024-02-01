@@ -1,6 +1,6 @@
 [project]
 name = "guardify"
-version = "0.1.0"
+version = "0.1.1"
 description = "A simple library for token generation and validation."
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -12,7 +12,7 @@ classifiers = [
 ]
 keywords = ["token", "authentication"]
 dependencies = [
-    "runtypes>=0.3.0",
+    "runtypes>=0.4.1",
 ]
 
 [project.urls]
