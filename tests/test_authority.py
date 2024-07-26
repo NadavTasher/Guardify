@@ -105,6 +105,48 @@ def test_signature(authority):
         authority.validate(string)
 
 
+def test_revocation(authority):
+    # Issue a token
+    string, token = authority.issue("Hello World", {"Hello": "World"}, ["Hello"])
+
+    # Validate the token
+    authority.validate(string)
+
+    # Revoke the token
+    authority.revoke(token)
+
+    # Make sure validation raises a revocation error
+    with pytest.raises(RevocationError):
+        authority.validate(string)
+
+    # Issue a token
+    string, token = authority.issue("Hello World", {"Hello": "World"}, ["Hello"])
+
+    # Validate the token
+    authority.validate(string)
+
+    # Revoke the token
+    authority.revoke(token.id)
+
+    # Make sure validation raises a revocation error
+    with pytest.raises(RevocationError):
+        authority.validate(string)
+
+    # Test revocation by string
+    # Issue a token
+    string, token = authority.issue("Hello World", {"Hello": "World"}, ["Hello"])
+
+    # Validate the token
+    authority.validate(string)
+
+    # Revoke the token
+    authority.revoke(string)
+
+    # Make sure validation raises a revocation error
+    with pytest.raises(RevocationError):
+        authority.validate(string)
+
+
 def test_tokentype(authority):
     # Issue a token
     string, _ = authority.issue("Hello World", {"Hello": "World"}, ["Hello"])

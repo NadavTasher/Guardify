@@ -3,6 +3,7 @@ import time
 import json
 import hmac
 import base64
+import typing
 import hashlib
 import binascii
 
@@ -11,15 +12,16 @@ from runtypes import Text, typechecker
 
 # Import token types
 from guardify.token import Token
-from guardify.exceptions import ClockError, ExpirationError, PermissionError, SignatureError
+from guardify.errors import ClockError, ExpirationError, PermissionError, SignatureError, RevocationError
 
 
 class Authority(object):
 
-    def __init__(self, secret, hash=hashlib.sha256):
+    def __init__(self, secret: typing.ByteString, hash: typing.Callable[..., typing.Any] = hashlib.sha256, revokations: typing.MutableMapping[str, int] = dict()) -> None:
         # Set internal parameters
         self._hash = hash
         self._secret = secret
+        self._revocations = revokations
 
         # Calculate the digest length
         self._length = self._hash(self._secret).digest_size
@@ -27,7 +29,7 @@ class Authority(object):
         # Set the type checker
         self.TokenType = typechecker(self.validate)
 
-    def issue(self, name, contents={}, permissions=[], validity=60 * 60 * 24 * 365):
+    def issue(self, name: str, contents: typing.Mapping[str, typing.Any] = {}, permissions: typing.Sequence[str] = [], validity: int = 60 * 60 * 24 * 365) -> typing.Tuple[str, Token]:
         # Calculate token validity
         timestamp = int(time.time())
 
@@ -46,10 +48,14 @@ class Authority(object):
         # Encode the token and return
         return base64.b64encode(buffer + signature).decode(), object
 
-    def validate(self, token, *permissions):
+    def validate(self, token: str, *permissions: str) -> Token:
         # Make sure token is a text
         if not isinstance(token, Text):
             raise TypeError("Token must be text")
+
+        # Make sure the entire token contents are not revoked
+        if token in self._revocations:
+            raise RevocationError(f"Token has been revoked {int(time.time() - self._revocations[token])} seconds ago")
 
         # Decode token to buffer
         buffer_and_signature = base64.b64decode(token)
@@ -75,7 +81,26 @@ class Authority(object):
         # Validate permissions
         for permission in permissions:
             if permission not in object.permissions:
-                raise PermissionError("Token is missing the %r permission" % permission)
+                raise PermissionError(f"Token is missing the {permission!r} permission")
+
+        # Check revokations
+        if object.id in self._revocations:
+            raise RevocationError(f"Token has been revoked {int(time.time() - self._revocations[object.id])} seconds ago")
 
         # Return the created object
         return object
+
+    def revoke(self, token: typing.Union[str, Token]) -> None:
+        # Check whether the value is a token
+        if isinstance(token, Token):
+            # The token ID
+            identifier = token.id
+        elif isinstance(token, str):
+            # An ID or just the entire string
+            identifier = token
+        else:
+            # Not the right type
+            raise TypeError("Invalid type for revocation")
+
+        # Revoke the token!
+        self._revocations[identifier] = int(time.time())

@@ -16,3 +16,7 @@ class PermissionError(TokenError):
 
 class SignatureError(TokenError):
     pass
+
+
+class RevocationError(TokenError):
+    pass
