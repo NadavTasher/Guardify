@@ -17,11 +17,11 @@ from guardify.errors import ClockError, ExpirationError, PermissionError, Signat
 
 class Authority(object):
 
-    def __init__(self, secret: typing.ByteString, hash: typing.Callable[..., typing.Any] = hashlib.sha256, revokations: typing.MutableMapping[str, int] = dict()) -> None:
+    def __init__(self, secret: typing.ByteString, hash: typing.Callable[..., typing.Any] = hashlib.sha256, revocations: typing.MutableMapping[str, int] = dict()) -> None:
         # Set internal parameters
         self._hash = hash
         self._secret = secret
-        self._revocations = revokations
+        self._revocations = revocations
 
         # Calculate the digest length
         self._length = self._hash(self._secret).digest_size
@@ -83,7 +83,7 @@ class Authority(object):
             if permission not in object.permissions:
                 raise PermissionError(f"Token is missing the {permission!r} permission")
 
-        # Check revokations
+        # Check revocations
         if object.id in self._revocations:
             raise RevocationError(f"Token has been revoked {int(time.time() - self._revocations[object.id])} seconds ago")
 
