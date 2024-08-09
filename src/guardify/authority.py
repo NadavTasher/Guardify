@@ -12,7 +12,7 @@ from runtypes import Text, typechecker
 
 # Import token types
 from guardify.token import Token
-from guardify.errors import ClockError, ExpirationError, PermissionError, SignatureError, RevocationError
+from guardify.errors import ClockError, DecodingError, ExpirationError, PermissionError, SignatureError, RevocationError
 
 
 class Authority(object):
@@ -51,32 +51,36 @@ class Authority(object):
     def validate(self, token: str, *permissions: str) -> Token:
         # Make sure token is a text
         if not isinstance(token, Text):
-            raise TypeError("Token must be text")
+            raise TypeError(f"Token must be text")
 
         # Make sure the entire token contents are not revoked
         if token in self._revocations:
             raise RevocationError(f"Token has been revoked {int(time.time() - self._revocations[token])} seconds ago")
 
-        # Decode token to buffer
-        buffer_and_signature = base64.b64decode(token)
+        try:
+            # Decode token to buffer
+            buffer_and_signature = base64.b64decode(token)
+        except binascii.Error:
+            # Raise decoding error
+            raise DecodingError(f"Token decoding failed")
 
         # Split buffer to token string and HMAC
         buffer, signature = buffer_and_signature[:-self._length], buffer_and_signature[-self._length:]
 
         # Validate HMAC of buffer
         if hmac.new(self._secret, buffer, self._hash).digest() != signature:
-            raise SignatureError("Token signature is invalid")
+            raise SignatureError(f"Token signature is invalid")
 
         # Decode string to token object
         object = Token(*json.loads(buffer))
 
         # Make sure token isn't from the future
         if object.timestamp > time.time():
-            raise ClockError("Token is invalid")
+            raise ClockError(f"Token is invalid")
 
         # Make sure token isn't expired
         if object.validity < time.time():
-            raise ExpirationError("Token is expired")
+            raise ExpirationError(f"Token is expired")
 
         # Validate permissions
         for permission in permissions:
@@ -100,7 +104,7 @@ class Authority(object):
             identifier = token
         else:
             # Not the right type
-            raise TypeError("Invalid type for revocation")
+            raise TypeError(f"Invalid type for revocation")
 
         # Revoke the token!
         self._revocations[identifier] = int(time.time())

@@ -54,6 +54,12 @@ def test_validate(authority):
         authority.validate(10)
 
 
+def test_decoding(authority):
+    # Make sure we can't validate shit strings
+    with pytest.raises(DecodingError):
+        authority.validate("NotAvaliDToke?n")
+
+
 def test_permissions(authority):
     # Issue a token
     string, _ = authority.issue("Hello World", {"Hello": "World"}, ["Hello"])

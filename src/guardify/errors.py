@@ -6,6 +6,10 @@ class ClockError(TokenError):
     pass
 
 
+class DecodingError(TokenError):
+    pass
+
+
 class ExpirationError(TokenError):
     pass
 
