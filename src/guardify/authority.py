@@ -8,7 +8,7 @@ import hashlib
 import binascii
 
 # Import runtypes
-from runtypes import Text, typechecker
+from runtypes import RunType, AnyStr
 
 # Import token types
 from guardify.token import Token
@@ -27,7 +27,7 @@ class Authority(object):
         self._length = self._hash(self._secret).digest_size
 
         # Set the type checker
-        self.TokenType = typechecker(self.validate)
+        self.TokenType = RunType("TokenType", caster=self.validate, checker=self.validate)
 
     def issue(self, name: str, contents: typing.Mapping[str, typing.Any] = {}, permissions: typing.Sequence[str] = [], validity: int = 60 * 60 * 24 * 365) -> typing.Tuple[str, Token]:
         # Calculate token validity
@@ -50,7 +50,7 @@ class Authority(object):
 
     def validate(self, token: str, *permissions: str) -> Token:
         # Make sure token is a text
-        if not isinstance(token, Text):
+        if not isinstance(token, AnyStr):
             raise TypeError(f"Token must be text")
 
         # Make sure the entire token contents are not revoked
