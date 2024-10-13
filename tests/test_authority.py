@@ -69,7 +69,7 @@ def test_permissions(authority):
     authority.validate(string, "Hello")
 
     # Make sure the validation raises
-    with pytest.raises(PermissionError):
+    with pytest.raises(TraitError):
         authority.validate(string, "World")
 
 
@@ -164,7 +164,7 @@ def test_tokentype(authority):
     assert authority.TokenType["Hello"](string).contents["Hello"] == "World"
 
     # Make sure the type checker works with wrong permissions
-    with pytest.raises(PermissionError):
+    with pytest.raises(TraitError):
         authority.TokenType["World"](string).contents["Hello"] == "World"
 
     # Check the type checker using isinstance

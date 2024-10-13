@@ -12,7 +12,7 @@ from runtypes import RunType, AnyStr
 
 # Import token types
 from guardify.token import Token
-from guardify.errors import ClockError, DecodingError, ExpirationError, PermissionError, SignatureError, RevocationError
+from guardify.errors import ClockError, DecodingError, ExpirationError, TraitError, SignatureError, RevocationError
 
 
 class Authority(object):
@@ -29,7 +29,7 @@ class Authority(object):
         # Set the type checker
         self.TokenType = RunType("TokenType", caster=self.validate, checker=self.validate)
 
-    def issue(self, name: str, contents: typing.Mapping[str, typing.Any] = {}, permissions: typing.Sequence[str] = [], validity: int = 60 * 60 * 24 * 365) -> typing.Tuple[str, Token]:
+    def issue(self, name: str, contents: typing.Mapping[str, typing.Any] = {}, traits: typing.Sequence[str] = [], validity: int = 60 * 60 * 24 * 365) -> typing.Tuple[str, Token]:
         # Calculate token validity
         timestamp = int(time.time())
 
@@ -37,7 +37,7 @@ class Authority(object):
         identifier = binascii.b2a_hex(os.urandom(6)).decode()
 
         # Create token object
-        object = Token(identifier, name, contents, timestamp + validity, timestamp, permissions)
+        object = Token(identifier, name, contents, timestamp + validity, timestamp, traits)
 
         # Create token buffer from object
         buffer = json.dumps(object).encode()
@@ -48,7 +48,7 @@ class Authority(object):
         # Encode the token and return
         return base64.b64encode(buffer + signature).decode(), object
 
-    def validate(self, token: str, *permissions: str) -> Token:
+    def validate(self, token: str, *traits: str) -> Token:
         # Make sure token is a text
         if not isinstance(token, AnyStr):
             raise TypeError(f"Token must be text")
@@ -82,10 +82,10 @@ class Authority(object):
         if object.validity < time.time():
             raise ExpirationError(f"Token is expired")
 
-        # Validate permissions
-        for permission in permissions:
-            if permission not in object.permissions:
-                raise PermissionError(f"Token is missing the {permission!r} permission")
+        # Validate traits
+        for trait in traits:
+            if trait not in object.traits:
+                raise TraitError(f"Token is missing the {trait!r} trait")
 
         # Check revocations
         if object.id in self._revocations:
