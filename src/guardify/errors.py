@@ -14,7 +14,7 @@ class ExpirationError(TokenError):
     pass
 
 
-class TraitError(TokenError):
+class RoleError(TokenError):
     pass
 
 

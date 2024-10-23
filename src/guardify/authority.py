@@ -12,7 +12,7 @@ from runtypes import RunType
 
 # Import token types
 from guardify.token import Token
-from guardify.errors import ClockError, DecodingError, ExpirationError, TraitError, SignatureError, RevocationError
+from guardify.errors import ClockError, DecodingError, ExpirationError, RoleError, SignatureError, RevocationError
 
 
 class Authority(object):
@@ -29,7 +29,7 @@ class Authority(object):
         # Set the type checker
         self.TokenType = RunType("TokenType", caster=self.validate, checker=self.validate)
 
-    def issue(self, name: str, contents: typing.Mapping[str, typing.Any] = {}, traits: typing.Sequence[str] = [], validity: int = 60 * 60 * 24 * 365) -> typing.Tuple[str, Token]:
+    def issue(self, name: str, contents: typing.Mapping[str, typing.Any] = {}, roles: typing.Sequence[str] = [], validity: int = 60 * 60 * 24 * 365) -> typing.Tuple[str, Token]:
         # Calculate token validity
         timestamp = int(time.time())
 
@@ -37,7 +37,7 @@ class Authority(object):
         identifier = binascii.b2a_hex(os.urandom(6)).decode()
 
         # Create token object
-        object = Token(identifier, name, contents, timestamp + validity, timestamp, traits)
+        object = Token(identifier, name, contents, timestamp + validity, timestamp, roles)
 
         # Create token buffer from object
         buffer = json.dumps(object).encode()
@@ -48,7 +48,7 @@ class Authority(object):
         # Encode the token and return
         return base64.b64encode(buffer + signature).decode(), object
 
-    def validate(self, token: typing.Union[str, Token], *traits: str) -> Token:
+    def validate(self, token: typing.Union[str, Token], *roles: str) -> Token:
         # Make sure token is a text
         if not isinstance(token, (str, Token)):
             raise TypeError(f"Token must be a string or a Token")
@@ -84,10 +84,10 @@ class Authority(object):
         if token.validity < time.time():
             raise ExpirationError(f"Token is expired")
 
-        # Validate traits
-        for trait in traits:
-            if trait not in token.traits:
-                raise TraitError(f"Token is missing the {trait!r} trait")
+        # Validate roles
+        for role in roles:
+            if role not in token.roles:
+                raise RoleError(f"Token is missing the {role!r} role")
 
         # Check revocations
         if token.id in self._revocations:
