@@ -15,16 +15,16 @@ from guardify.token import Token
 from guardify.errors import ClockError, DecodingError, ExpirationError, RoleError, SignatureError, RevocationError
 
 
-class Authority(object):
+class Authority:
 
-    def __init__(self, secret: typing.ByteString, hash: typing.Callable[..., typing.Any] = hashlib.sha256, revocations: typing.MutableMapping[str, int] = dict()) -> None:
+    def __init__(self, secret: typing.ByteString, hasher: typing.Callable[..., typing.Any] = hashlib.sha256, revocations: typing.Optional[typing.MutableMapping[str, int]] = None) -> None:
         # Set internal parameters
-        self._hash = hash
+        self._hasher = hasher
         self._secret = secret
-        self._revocations = revocations
+        self._revocations = revocations or {}
 
         # Calculate the digest length
-        self._length = self._hash(self._secret).digest_size
+        self._length = self._hasher(self._secret).digest_size
 
         # Set the type checker
         self.TokenType = RunType("TokenType", caster=self.validate, checker=self.validate)
@@ -37,21 +37,21 @@ class Authority(object):
         identifier = binascii.b2a_hex(os.urandom(6)).decode()
 
         # Create token object
-        object = Token(identifier, name, contents, timestamp + validity, timestamp, roles)
+        token = Token(identifier, name, contents, timestamp + validity, timestamp, roles)
 
         # Create token buffer from object
-        buffer = json.dumps(object).encode()
+        buffer = json.dumps(token).encode()
 
         # Create token signature from token buffer
-        signature = hmac.new(self._secret, buffer, self._hash).digest()
+        signature = hmac.new(self._secret, buffer, self._hasher).digest()
 
         # Encode the token and return
-        return base64.b64encode(buffer + signature).decode(), object
+        return base64.b64encode(buffer + signature).decode(), token
 
     def validate(self, token: typing.Union[str, Token], *roles: str) -> Token:
         # Make sure token is a text
         if not isinstance(token, (str, Token)):
-            raise TypeError(f"Token must be a string or a Token")
+            raise TypeError("Token must be a string or a Token")
 
         # If the token is a string, parse it
         if isinstance(token, str):
@@ -62,27 +62,27 @@ class Authority(object):
             try:
                 # Decode token to buffer
                 buffer_and_signature = base64.b64decode(token)
-            except binascii.Error:
+            except binascii.Error as exception:
                 # Raise decoding error
-                raise DecodingError(f"Token decoding failed")
+                raise DecodingError("Token decoding failed") from exception
 
             # Split buffer to token string and HMAC
             buffer, signature = buffer_and_signature[:-self._length], buffer_and_signature[-self._length:]
 
             # Validate HMAC of buffer
-            if hmac.new(self._secret, buffer, self._hash).digest() != signature:
-                raise SignatureError(f"Token signature is invalid")
+            if hmac.new(self._secret, buffer, self._hasher).digest() != signature:
+                raise SignatureError("Token signature is invalid")
 
             # Decode string to token object
             token = Token(*json.loads(buffer))
 
         # Make sure token isn't from the future
         if token.timestamp > time.time():
-            raise ClockError(f"Token is invalid")
+            raise ClockError("Token is invalid")
 
         # Make sure token isn't expired
         if token.validity < time.time():
-            raise ExpirationError(f"Token is expired")
+            raise ExpirationError("Token is expired")
 
         # Validate roles
         for role in roles:
@@ -91,7 +91,7 @@ class Authority(object):
 
         # Check revocations
         if token.id in self._revocations:
-            raise RevocationError(f"Token has been revoked {int(time.time() - self._revocations[token.id])} seconds ago")
+            raise RevocationError(f"Token has been revoked {int(time.time()) - self._revocations[token.id]} seconds ago")
 
         # Return the created object
         return token
@@ -106,7 +106,7 @@ class Authority(object):
             identifier = token
         else:
             # Not the right type
-            raise TypeError(f"Invalid type for revocation")
+            raise TypeError("Invalid type for revocation")
 
         # Revoke the token!
         self._revocations[identifier] = int(time.time())
