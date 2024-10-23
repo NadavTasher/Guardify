@@ -48,51 +48,53 @@ class Authority(object):
         # Encode the token and return
         return base64.b64encode(buffer + signature).decode(), object
 
-    def validate(self, token: str, *traits: str) -> Token:
+    def validate(self, token: typing.Union[str, Token], *traits: str) -> Token:
         # Make sure token is a text
-        if not isinstance(token, AnyStr):
-            raise TypeError(f"Token must be text")
+        if not isinstance(token, (str, Token)):
+            raise TypeError(f"Token must be a string or a Token")
 
-        # Make sure the entire token contents are not revoked
-        if token in self._revocations:
-            raise RevocationError(f"Token has been revoked {int(time.time() - self._revocations[token])} seconds ago")
+        # If the token is a string, parse it
+        if isinstance(token, str):
+            # Make sure the entire token string is not revoked
+            if token in self._revocations:
+                raise RevocationError(f"Token has been revoked {int(time.time() - self._revocations[token])} seconds ago")
 
-        try:
-            # Decode token to buffer
-            buffer_and_signature = base64.b64decode(token)
-        except binascii.Error:
-            # Raise decoding error
-            raise DecodingError(f"Token decoding failed")
+            try:
+                # Decode token to buffer
+                buffer_and_signature = base64.b64decode(token)
+            except binascii.Error:
+                # Raise decoding error
+                raise DecodingError(f"Token decoding failed")
 
-        # Split buffer to token string and HMAC
-        buffer, signature = buffer_and_signature[:-self._length], buffer_and_signature[-self._length:]
+            # Split buffer to token string and HMAC
+            buffer, signature = buffer_and_signature[:-self._length], buffer_and_signature[-self._length:]
 
-        # Validate HMAC of buffer
-        if hmac.new(self._secret, buffer, self._hash).digest() != signature:
-            raise SignatureError(f"Token signature is invalid")
+            # Validate HMAC of buffer
+            if hmac.new(self._secret, buffer, self._hash).digest() != signature:
+                raise SignatureError(f"Token signature is invalid")
 
-        # Decode string to token object
-        object = Token(*json.loads(buffer))
+            # Decode string to token object
+            token = Token(*json.loads(buffer))
 
         # Make sure token isn't from the future
-        if object.timestamp > time.time():
+        if token.timestamp > time.time():
             raise ClockError(f"Token is invalid")
 
         # Make sure token isn't expired
-        if object.validity < time.time():
+        if token.validity < time.time():
             raise ExpirationError(f"Token is expired")
 
         # Validate traits
         for trait in traits:
-            if trait not in object.traits:
+            if trait not in token.traits:
                 raise TraitError(f"Token is missing the {trait!r} trait")
 
         # Check revocations
-        if object.id in self._revocations:
-            raise RevocationError(f"Token has been revoked {int(time.time() - self._revocations[object.id])} seconds ago")
+        if token.id in self._revocations:
+            raise RevocationError(f"Token has been revoked {int(time.time() - self._revocations[token.id])} seconds ago")
 
         # Return the created object
-        return object
+        return token
 
     def revoke(self, token: typing.Union[str, Token]) -> None:
         # Check whether the value is a token

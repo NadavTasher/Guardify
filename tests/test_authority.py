@@ -170,3 +170,6 @@ def test_tokentype(authority):
     # Check the type checker using isinstance
     assert isinstance(string, authority.TokenType)
     assert not isinstance("Hello World", authority.TokenType)
+
+    # Make sure the token returned passes the validation
+    assert isinstance(authority.TokenType(string), authority.TokenType)
