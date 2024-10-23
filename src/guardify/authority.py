@@ -8,7 +8,7 @@ import hashlib
 import binascii
 
 # Import runtypes
-from runtypes import RunType, AnyStr
+from runtypes import RunType
 
 # Import token types
 from guardify.token import Token
